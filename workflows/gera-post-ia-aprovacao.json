@@ -1,0 +1,132 @@
+{
+  "name": "Gera post com IA e aprovação",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "days", "triggerAtHour": 9 }]
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000001",
+      "name": "Toda manhã (Agenda)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {}
+      },
+      "id": "b2000000-0000-4000-8000-000000000002",
+      "name": "Modelo de IA",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [500, 480],
+      "notes": "Conecte aqui sua credencial da OpenAI."
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Escreva um rascunho curto de post para redes sociais sobre o tema do dia. Tom próximo e claro, sem jargão. Devolva só o texto do post.",
+        "options": {}
+      },
+      "id": "b2000000-0000-4000-8000-000000000003",
+      "name": "Gera rascunho",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "rascunho", "type": "string", "value": "={{ $json.text }}" },
+            { "id": "a2", "name": "instrucao", "type": "string", "value": "Responda: APROVAR, EDITAR <novo texto> ou PULAR." }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2000000-0000-4000-8000-000000000004",
+      "name": "Prepara aprovação",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1020, 300],
+      "notes": "Aqui você enviaria o rascunho para o canal de aprovação (WhatsApp, Slack, etc.) e aguardaria a resposta."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.resposta }}",
+              "rightValue": "APROVAR",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b2000000-0000-4000-8000-000000000005",
+      "name": "Aprovado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1280, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "p1", "name": "acao", "type": "string", "value": "publicar" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2000000-0000-4000-8000-000000000006",
+      "name": "Publica",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1540, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "d1", "name": "acao", "type": "string", "value": "descartar_ou_reeditar" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2000000-0000-4000-8000-000000000007",
+      "name": "Não publica",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1540, 400]
+    }
+  ],
+  "connections": {
+    "Toda manhã (Agenda)": {
+      "main": [[{ "node": "Gera rascunho", "type": "main", "index": 0 }]]
+    },
+    "Modelo de IA": {
+      "ai_languageModel": [[{ "node": "Gera rascunho", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Gera rascunho": {
+      "main": [[{ "node": "Prepara aprovação", "type": "main", "index": 0 }]]
+    },
+    "Prepara aprovação": {
+      "main": [[{ "node": "Aprovado?", "type": "main", "index": 0 }]]
+    },
+    "Aprovado?": {
+      "main": [
+        [{ "node": "Publica", "type": "main", "index": 0 }],
+        [{ "node": "Não publica", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}

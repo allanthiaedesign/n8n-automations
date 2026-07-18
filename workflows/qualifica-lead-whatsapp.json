@@ -1,0 +1,113 @@
+{
+  "name": "Qualifica lead WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-whatsapp",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Mensagem nova (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "a1000000-0000-4000-8000-0000000000wh"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Modelo de IA",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [520, 480],
+      "notes": "Conecte aqui sua credencial da OpenAI."
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.body.message }}",
+        "categories": {
+          "categories": [
+            { "category": "Interessado", "description": "Demonstra interesse real no produto ou serviço; quer comprar, agendar ou saber preço." },
+            { "category": "Duvida", "description": "Tem uma pergunta pontual que pode ser respondida com informação simples." },
+            { "category": "Fora do perfil", "description": "Não é o público-alvo, é spam, ou está oferecendo algo." }
+          ]
+        },
+        "options": { "enableAutoFixing": true }
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Classifica intenção",
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1,
+      "position": [780, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s1", "name": "acao", "type": "string", "value": "encaminhar_humano" },
+            { "id": "s2", "name": "motivo", "type": "string", "value": "Lead interessado — vale o tempo de um atendente." }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Encaminha p/ humano",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1060, 160]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s1", "name": "acao", "type": "string", "value": "responder_automatico" },
+            { "id": "s2", "name": "motivo", "type": "string", "value": "Dúvida simples — resposta automática resolve." }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Responde automático",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1060, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s1", "name": "acao", "type": "string", "value": "ignorar" },
+            { "id": "s2", "name": "motivo", "type": "string", "value": "Fora do perfil — não consome atendimento." }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "Ignora",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1060, 440]
+    }
+  ],
+  "connections": {
+    "Mensagem nova (Webhook)": {
+      "main": [[{ "node": "Classifica intenção", "type": "main", "index": 0 }]]
+    },
+    "Modelo de IA": {
+      "ai_languageModel": [[{ "node": "Classifica intenção", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Classifica intenção": {
+      "main": [
+        [{ "node": "Encaminha p/ humano", "type": "main", "index": 0 }],
+        [{ "node": "Responde automático", "type": "main", "index": 0 }],
+        [{ "node": "Ignora", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}
